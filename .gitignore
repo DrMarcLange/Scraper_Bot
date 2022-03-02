@@ -1,0 +1,4 @@
+__pycache*
+*.pass
+*.json
+chromedriver
