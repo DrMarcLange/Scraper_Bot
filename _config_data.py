@@ -8,7 +8,7 @@ from googleapiclient.errors import HttpError
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets',]
 SPREADSHEET_ID = '12B5ilZlcCaEHvR1HbPrBKCAMJHc3OA_oookHDrQjHlQ'
 ACTION_RANGE_NAME = 'action_sequence!A1:D'
-CONFIG_NAME = 'config!A1:B'
+#CONFIG_NAME = 'config!A1:B'
 LOG_NAME = 'LOG!A1:I'
 
 def get_action_sheet_data():
@@ -26,14 +26,14 @@ def get_action_sheet_data():
              token.write(creds.to_json())
    try:
       service=build('sheets','v4',credentials=creds); sheet=service.spreadsheets()
-      config=sheet.values().get(spreadsheetId=SPREADSHEET_ID,range=CONFIG_NAME).execute()
-      c=config.get('values',[]); url=c[0]
+      #config=sheet.values().get(spreadsheetId=SPREADSHEET_ID,range=CONFIG_NAME).execute()
+      #c=config.get('values',[]); url=c[0]
       result=sheet.values().get(spreadsheetId=SPREADSHEET_ID,range=ACTION_RANGE_NAME).execute()
       values=result.get('values',[])
       if not values:
         print('No data found.')
         return
-      return url, values
+      return values
    except HttpError as err:
       print(err)
 
@@ -80,4 +80,3 @@ def clear_log():
       request.execute()
    except HttpError as err:
       print(err)
-

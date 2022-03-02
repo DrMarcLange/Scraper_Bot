@@ -9,14 +9,13 @@ import time
 wait = lambda s: time.sleep(s)
 
 import _config_data
-url, action_sequence = _config_data.get_action_sheet_data()
-action_dictionary = { 'url': url, 'action_sequence': action_sequence }
+action_sequence = _config_data.get_action_sheet_data()
 
 import datetime
 stamp = lambda : str(datetime.datetime.now())[:19]
 clear_log = lambda : _config_data.clear_log()
 log_row = lambda x: _config_data.append_log_data([x,])
-renew_log = lambda : log_row(['BOT','created_at','text','tag','url'])
+renew_log = lambda : log_row(['BOT','created_at','text','tag','keys','delay','url'])
 
 class Scraper_Bot():
   def __init__(self):
@@ -39,37 +38,37 @@ class Scraper_Bot():
       self._driver = self.__start_new_driver__()
       return self._driver
 
-  def execute_action_dictionary(self,action_dictionary):
-    _url=action_dictionary['url']
-    action_sequence=action_dictionary['action_sequence']
-
+  def execute_action_sequence(self,action_sequence):
+    _url=min(map(lambda x: x[2],filter(lambda x: x[1]=='_URL',action_sequence))); self.url=_url
     _colnames, action_sequence = action_sequence[0], action_sequence[1:]
-    print('Parsing action_sequence according to col_ids: \n\t-', dict(list(enumerate(_colnames))))
-    print('seeing action_sequence: ',end='\n\t- ')
-    for action in action_sequence[:-1]:
-      print(action,end='\n\t- ')
-    print(action_sequence[-1])
-
-    clear_log()
-    renew_log()
-    self.url=_url[1]
-    log_row(['v0.1',stamp(),'STARTED PROCESS','n/a',self.url])
+    clear_log(); renew_log(); log_row(['v0.1',stamp(),'STARTED PROCESS','n/a','n/a','0',self.url])
 
     with open('.pass','r') as fi:
       strings=fi.readlines()
-    print(strings)
     strings=list(map(lambda x: x.strip().split(':'),strings))
-    strings=list(filter(lambda x: x[0].lower() in self.url, strings))
-    _,self.username,self.password=strings[0]
-    browser=self.browser; browser.get(self.url); wait(4)
+    strings=list(filter(lambda x: x[0].lower() in self.url, strings))[0]
+    self.username,self.password=strings[1:]
 
-    ##TODO: Not properly working from here on 
+    browser=self.browser #start a controllable browser-instance
+    print(action_sequence)
     for text, tag, action, delay in action_sequence:
-      log_row(['v0.1',stamp(),text,action])
+      log_row(['v0.1',stamp(),text,tag,action,delay,self.url])
       elements=list()
+      if tag == '_START':
+        print('starting action sequence, START', stamp())
+        continue
+      if tag == '_DONE':
+        print('finished action sequence, DONE!', stamp())
+        break #escape the for-loop
+      if tag == '_URL':
+        print('Going directly to url: ', action)
+        browser.get(action); wait(float(delay)); continue
       while len(elements)==0:
-        wait(1)
+        print(text,tag,action,delay)
+        print('trying to find elements, waiting ', delay,' s')
+        wait(float(delay));
         elements=browser.find_elements(by=By.TAG_NAME,value=tag)
+        print('found ',len(elements),' elements')
         if len(elements)>0:
           try:
             print(elements[0].text)
@@ -92,22 +91,28 @@ class Scraper_Bot():
                 #while-loop (l.57) break, not match break 
                 elements[0].click(); break
               except:
-                wait(delay); continue
+                continue
             case 'USER':
               try:
                 print('Sending Username: ',self.username)
                 elements[0].send_keys(self.username+'\n'); break
               except:
-                wait(delay); continue
+                continue
             case 'PASS':
               try:
                 print('Sending Password of length: ', 5*(1+len(self.password)//5))
-                elements[0].send_keys(self.password+'\n'); break
+                elements[1].send_keys(self.password+'\n'); break
               except:
-                wait(delay); continue
+                continue
+            case s:
+              try:
+                print('Sending the string: ', s)
+                elements[0].send_keys(s+'\n'); break
+              except:
+                continue
     ##==Logged In, seeing feed!==##
     return browser
 
 if __name__=='__main__':
   scrbot = Scraper_Bot()
-  browser = scrbot.execute_action_dictionary(action_dictionary)
+  browser = scrbot.execute_action_sequence(action_sequence)
